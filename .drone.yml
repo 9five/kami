@@ -1,0 +1,277 @@
+---
+kind: pipeline
+type: docker
+name: backend test
+trigger:
+  event:
+    exclude:
+      - tag
+      - pull_request
+
+clone:
+  depth: 1
+  build: &build_server
+    image: golang:1.18-alpine
+    environment:
+      GOOS: linux
+      GOARCH: amd64
+
+  scp: &scp_to_server
+    image: appleboy/drone-scp
+    settings:
+      username: ubuntu
+      key:
+        from_secret: DEV_KEY
+      target: /home/ubuntu
+      source: backend-dev.tar.gz
+
+  restartServer: &restart_server
+    image: appleboy/drone-ssh
+    settings:
+      username: ubuntu
+      key:
+        from_secret: DEV_KEY
+      script:
+        - tar zxvf backend-dev.tar.gz
+        - mv /home/ubuntu/kamiBackendDev /home/ubuntu/kami/
+        - sudo docker-compose -f docker-compose-dev.yml down
+        - sudo docker-compose -f docker-compose-dev.yml up -d
+
+steps:
+  # - name: test
+  #   image: backend_builder:v3
+  #   environment:
+  #     GOOS: linux
+  #     GOARCH: amd64
+  #     CGO_ENABLED: 1
+  #   commands:
+  #     - go mod download
+  #     - go test --tags=localTest ./tests/ ./service ./model/repository
+  #   when:
+  #     event:
+  #       exclude:
+  #         - pull_request
+  
+  - name: build
+    <<: *build_server
+    commands:
+      - go mod download
+      - go build -tags awsDev -o kamiBackendDev cmd/api/main.go
+      - tar zcvf backend-dev.tar.gz kamiBackendDev
+    when:
+      branch:
+        - main
+      event:
+        exclude:
+          - pull_request
+
+  - name: scp
+    <<: *scp_to_server
+    settings:
+      host:
+        from_secret: server_ip
+    when:
+      branch:
+        - main
+      event:
+        exclude:
+          - pull_request
+
+  - name: restart server
+    <<: *restart_server
+    settings:
+      host:
+        from_secret: server_ip
+    when:
+      branch:
+        - main
+      event:
+        exclude:
+          - pull_request
+
+  - name: test notification
+    image: plugins/slack
+    settings:
+      webhook: https://hooks.slack.com/services/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
+      channel: C02BMR4K4
+      username: center-builder
+      template: >
+        {{#success build.status}}
+          Kami Membership Test
+          Backend :
+            Commit ' ${DRONE_COMMIT_MESSAGE} '
+            Build:  SUCCESS
+            DEV DOCS: `https://membership.kamikami.co:3001/swagger/index.html`
+        {{else}}
+          Kami Membership Test
+          <@U9UEAMBMF|cal> <@U036JBGBG2Z|cal>
+          Backend :
+            Commit ' ${DRONE_COMMIT_MESSAGE} '
+            Build: FAILED
+        {{/success}}
+    when:
+      status: [ success, failure ]
+# ---
+# kind: pipeline
+# type: docker
+# name: backend dev
+# trigger:
+#   ref:
+#     - refs/tags/*
+
+# clone:
+#   depth: 1
+#   build: &build_server
+#     image: golang:1.18-alpine
+#     environment:
+#       GOOS: linux
+#       GOARCH: amd64
+
+#   scp: &scp_to_server
+#     image: appleboy/drone-scp
+#     settings:
+#       username: ubuntu
+#       key:
+#         from_secret: DEV_KEY
+#       target: /home/ubuntu
+#       source: backend-dev.tar.gz
+
+#   restartServer: &restart_server
+#     image: appleboy/drone-ssh
+#     settings:
+#       username: ubuntu
+#       key:
+#         from_secret: DEV_KEY
+#       script:
+#         - tar zxvf backend-dev.tar.gz
+#         - mv /home/ubuntu/kamiBackendDev /home/ubuntu/kami/
+#         - sudo docker-compose -f docker-compose-dev.yml down
+#         - sudo docker-compose -f docker-compose-dev.yml up -d
+
+# steps:
+#   - name: build
+#     <<: *build_server
+#     commands:
+#       - go mod download
+#       - go build -tags awsDev -o kamiBackendDev cmd/api/main.go
+#       - tar zcvf backend-dev.tar.gz kamiBackendDev
+
+#   - name: scp
+#     <<: *scp_to_server
+#     settings:
+#       host:
+#         from_secret: server_ip
+
+#   - name: restart server
+#     <<: *restart_server
+#     settings:
+#       host:
+#         from_secret: server_ip
+
+#   - name: release notification
+#     image: plugins/slack
+#     settings:
+#       webhook: https://hooks.slack.com/services/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
+#       channel: C02BMR4K4
+#       username: center-builder
+#       template: >
+#         {{#success build.status}}
+#           Kami Membership Dev
+#           Backend :
+#             Version: '{{build.tag}}'
+#             Commit ' ${DRONE_COMMIT_MESSAGE} '
+#             Build:  SUCCESS
+#             位置 `https://www.creator-center.cc`
+#         {{else}}
+#           Kami Membership Dev
+#           <@U9UEAMBMF|cal> <@U036JBGBG2Z|cal>
+#           Backend :
+#             Version: '{{build.tag}}'
+#             Commit ' ${DRONE_COMMIT_MESSAGE} '
+#             Build: FAILED
+#         {{/success}}
+#     when:
+#       ref:
+#         - refs/tags/*
+---
+kind: pipeline
+type: docker
+name: backend
+trigger:
+  ref:
+    - refs/tags/*
+
+clone:
+  depth: 1
+  build: &build_server
+    image: golang:1.18-alpine
+    environment:
+      GOOS: linux
+      GOARCH: amd64
+
+  scp: &scp_to_server
+    image: appleboy/drone-scp
+    settings:
+      username: ubuntu
+      key:
+        from_secret: DEV_KEY
+      target: /home/ubuntu
+      source: backend.tar.gz
+
+  restartServer: &restart_server
+    image: appleboy/drone-ssh
+    settings:
+      username: ubuntu
+      key:
+        from_secret: DEV_KEY
+      script:
+        - tar zxvf backend.tar.gz
+        - mv /home/ubuntu/kamiBackend /home/ubuntu/kami/
+        - sudo docker-compose -f docker-compose.yml down
+        - sudo docker-compose -f docker-compose.yml up -d
+
+steps:
+  - name: build
+    <<: *build_server
+    commands:
+      - go mod download
+      - go build -tags awsProd -o kamiBackend cmd/api/main.go
+      - tar zcvf backend.tar.gz kamiBackend
+
+  - name: scp
+    <<: *scp_to_server
+    settings:
+      host:
+        from_secret: server_ip
+
+  - name: restart server
+    <<: *restart_server
+    settings:
+      host:
+        from_secret: server_ip
+
+  - name: release notification
+    image: plugins/slack
+    settings:
+      webhook: https://hooks.slack.com/services/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
+      channel: C02BMR4K4
+      username: center-builder
+      template: >
+        {{#success build.status}}
+          Kami Membership Release
+          Backend :
+            Version: '{{build.release}}'
+            Commit ' ${DRONE_COMMIT_MESSAGE} '
+            Build:  SUCCESS
+            位置 `https://www.creator-center.cc`
+        {{else}}
+          Kami Membership Release
+          <@U9UEAMBMF|cal> <@U036JBGBG2Z|cal>
+          Backend :
+            Version: '{{build.release}}'
+            Commit ' ${DRONE_COMMIT_MESSAGE} '
+            Build: FAILED
+        {{/success}}
+    when:
+      ref:
+        - refs/tags/*

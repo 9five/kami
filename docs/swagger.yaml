@@ -1,0 +1,437 @@
+definitions:
+  domain.KamiOrder:
+    properties:
+      billing_status:
+        type: string
+      order_delivered_at:
+        type: string
+      order_id:
+        type: string
+      order_placed_at:
+        type: string
+      owner_phone:
+        type: string
+      platform:
+        type: string
+      restaurant:
+        type: string
+      status:
+        type: string
+    type: object
+  domain.KamiUserInput:
+    properties:
+      birthday:
+        type: string
+      career:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.KamiUserOutput:
+    properties:
+      birthday:
+        type: string
+      career:
+        type: string
+      email:
+        type: string
+      gender:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      points:
+        type: integer
+      status:
+        type: string
+    type: object
+  domain.OrderInput:
+    properties:
+      order_delivered_at:
+        type: string
+      prefix:
+        type: string
+      suffix:
+        type: string
+    type: object
+  domain.PrizeCardCollection:
+    properties:
+      cards:
+        items:
+          $ref: '#/definitions/domain.PrizeCardOutput'
+        type: array
+      pool_name:
+        type: string
+      total:
+        type: integer
+    type: object
+  domain.PrizeCardOutput:
+    properties:
+      audio:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      picture:
+        type: string
+      serial_number:
+        type: string
+      style:
+        type: string
+      title:
+        type: string
+    type: object
+  domain.PrizePool:
+    properties:
+      banner:
+        type: string
+      name:
+        type: string
+      owner:
+        type: string
+      points:
+        type: integer
+      style:
+        type: string
+    type: object
+  domain.VerificationInput:
+    properties:
+      code:
+        type: string
+      forgot_pw:
+        type: boolean
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  license: {}
+paths:
+  /api/login/enterPassword:
+    post:
+      consumes:
+      - application/json
+      description: 用戶輸入密碼
+      parameters:
+      - description: login token
+        in: query
+        name: token
+        required: true
+        type: string
+      - description: user's password
+        in: query
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 驗證密碼並回傳token
+      tags:
+      - login
+  /api/login/enterPhone:
+    post:
+      consumes:
+      - application/json
+      description: 用戶輸入電話號碼
+      parameters:
+      - description: user's phone number
+        in: query
+        name: phone
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得用戶電話號碼並寄出驗證碼
+      tags:
+      - login
+  /api/login/forgotPassword:
+    post:
+      consumes:
+      - application/json
+      description: 用戶輸入電話號碼
+      parameters:
+      - description: login token
+        in: query
+        name: token
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得用戶電話號碼並寄出驗證碼
+      tags:
+      - login
+  /api/login/verificationCheck:
+    post:
+      consumes:
+      - application/json
+      description: 用戶輸入驗證碼
+      parameters:
+      - description: login token & 6 digit verification code
+        in: body
+        name: verification
+        required: true
+        schema:
+          $ref: '#/definitions/domain.VerificationInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 驗證並回傳token
+      tags:
+      - login
+  /api/lottery/collection:
+    get:
+      consumes:
+      - application/json
+      description: 取得user的collection
+      parameters:
+      - description: prize pool id
+        in: query
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PrizeCardCollection'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得user的collection
+      tags:
+      - lottery
+  /api/lottery/collection/detail:
+    get:
+      consumes:
+      - application/json
+      description: 取得user的collection detail
+      parameters:
+      - description: prize card id
+        in: query
+        name: cid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得user的collection detail
+      tags:
+      - lottery
+  /api/lottery/draw:
+    post:
+      consumes:
+      - application/json
+      description: 抽獎
+      parameters:
+      - description: prize pool id
+        in: query
+        name: pid
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.PrizeCardOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 抽獎
+      tags:
+      - lottery
+  /api/lottery/prizePool:
+    get:
+      consumes:
+      - application/json
+      description: 提取現有抽獎池
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.PrizePool'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 提取現有抽獎池
+      tags:
+      - lottery
+  /api/order/getOrders:
+    get:
+      description: 取得用戶order list
+      parameters:
+      - description: 開始時間 etc. 2006-01
+        in: query
+        name: startDate
+        required: true
+        type: string
+      - description: 結束時間 etc. 2006-01
+        in: query
+        name: endDate
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.KamiOrder'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得用戶order list
+      tags:
+      - order
+  /api/order/register:
+    put:
+      consumes:
+      - application/json
+      description: 用戶輸入訂單資料
+      parameters:
+      - description: order info
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/domain.OrderInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 找到訂單並更新訂單擁有人
+      tags:
+      - order
+  /api/user/status:
+    get:
+      consumes:
+      - application/json
+      description: 取得當前用戶資料
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.KamiUserOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 取得當前用戶資料
+      tags:
+      - user
+  /api/user/updateInfo:
+    put:
+      consumes:
+      - application/json
+      description: 更新用戶資料
+      parameters:
+      - description: user info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/domain.KamiUserInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.KamiUserOutput'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 更新用戶資料
+      tags:
+      - user
+swagger: "2.0"
